@@ -1,9 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Optional
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from app.dependencies import get_current_user, get_supabase
-
+    
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 
 class CreatePostRequest(BaseModel):
     content: str
@@ -12,6 +15,7 @@ class CreatePostRequest(BaseModel):
     community_id: Optional[str] = None
 
 @router.post("/")
+@limiter.limit("10/minute")  # limit to 10 post creations per minute per IP
 async def create_post(
     body: CreatePostRequest,
     user=Depends(get_current_user),
